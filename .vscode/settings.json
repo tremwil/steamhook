@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.cargo.target": "i686-pc-windows-msvc",
+    "lldb.displayFormat": "hex",
+    "lldb.showDisassembly": "never",
+    "lldb.dereferencePointers": true,
+    "lldb.consoleMode": "commands"
+}

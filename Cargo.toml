@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "crates/steamhook",
+    "crates/test_dll",
+    "crates/test_launcher"
+]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
+debug = false
