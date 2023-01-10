@@ -7,7 +7,7 @@ use std::ops::Bound::*;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 
-use crate::memory_utils::SafeDeref;
+use crate::memory_utils::TryDeref;
 use crate::iced_extensions::*;
 
 #[derive(Default, Clone, Eq, PartialEq, Debug)]
@@ -439,13 +439,21 @@ pub struct AsmNestedPtr {
 }
 
 impl AsmNestedPtr {
-    pub fn eval(&self, base_value: isize) -> Option<isize> {
+    /// Tries to evaluate the final address of this nested pointer given the value
+    /// of the initial register, returning [`None`] if the memory could not be read.
+    /// 
+    /// # Safety
+    /// Despite being `unsafe`, this method will **not** lead to access violations
+    /// if the nested pointer points to invalid memory, returning [`None`] instead. It is marked 
+    /// `unsafe` as it does not respect other Rust invarians (namely, absence of race conditions 
+    /// and dangling pointer reads).
+    pub unsafe fn eval(&self, base_value: isize) -> Option<isize> {
         let mut ptr: isize = match self.base {
             PtrBase::Reg(r) => base_value,
             PtrBase::Addr(a) => a
         };
         for &ofs in &self.offsets {
-            ptr = ((ptr + ofs as isize) as *const isize).deref_safe()?;
+            ptr = ((ptr + ofs as isize) as *const isize).try_deref()?;
         }
         Some(ptr + self.final_offset)
     }
