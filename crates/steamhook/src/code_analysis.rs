@@ -41,10 +41,10 @@ pub struct ControlFlowGraph {
 
 #[derive(Error, Debug)]
 pub enum FlowAnalysisError {
-    #[error("code out of bounds")]
-    CodeOutOfBounds,
-    #[error("invalid instruction")]
-    InvalidInstruction
+    #[error("code address 0x{0:x} is out of bounds")]
+    CodeOutOfBounds(u64),
+    #[error("invalid instruction at 0x{0:x}")]
+    InvalidInstruction(u64)
 }
 
 static EMPTY_SET : Lazy<HashSet<u64>> = Lazy::new(|| HashSet::new());
@@ -96,7 +96,7 @@ impl ControlFlowGraph {
         
         while let Some((ip, from)) = to_visit.pop() {
             if !code_bounds.contains(&ip) {
-                return Err(FlowAnalysisError::CodeOutOfBounds);
+                return Err(FlowAnalysisError::CodeOutOfBounds(ip));
             }
             if let Some(v) = self.graph.get_mut(&ip) && let Some(f) = from {
                 v.into.insert(f);
@@ -108,7 +108,7 @@ impl ControlFlowGraph {
 
             let instr = decoder.decode();
             if instr.is_invalid() {
-                return Err(FlowAnalysisError::InvalidInstruction);
+                return Err(FlowAnalysisError::InvalidInstruction(ip));
             }
 
             // let mut output = String::new();
@@ -190,6 +190,9 @@ impl ControlFlowGraph {
     /// 
     /// `before_analysis` is a closure called with the current current pointer and instruction about to be analyzed. 
     /// It can be used to dictate analyzer control flow and modify the computed pointer / instruction the analyzer will see.
+    /// 
+    /// # Panics
+    /// if `param_ip` is not the IP of an instruction in `cfg`.
     pub fn analyze_ptr(&self, ip: u64, op: u32, skip_first: bool, before_analysis: impl Fn(&mut AsmNestedPtr, &mut Instruction) -> AnalysisFlowCtrl) -> Option<AsmNestedPtr> {
         let mut ptr = AsmNestedPtr::default();
 

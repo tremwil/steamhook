@@ -1,10 +1,11 @@
-use std::{ops::{Range, Deref}, arch::asm, sync::{RwLockReadGuard, RwLockWriteGuard, RwLock}, mem::{MaybeUninit, align_of}, io::Write, ptr::NonNull};
+#![allow(dead_code)]
+
+use std::{ops::{Range}, arch::asm, mem::MaybeUninit, ptr::NonNull, ffi::c_void};
 use once_cell::sync::OnceCell;
 use pelite::pe::{PeView, Va, Pe};
 use crate::vtable_scan::ModuleId;
-use std::ffi::*;
 
-use windows::Win32::System::Diagnostics::Debug::{self as windbg, AddVectoredExceptionHandler};
+use windows::Win32::System::Diagnostics::Debug::{self as windbg, AddVectoredExceptionHandler, RemoveVectoredExceptionHandler};
 use windbg::EXCEPTION_POINTERS;
 
 use std::mem::size_of;
@@ -113,7 +114,7 @@ static VEH_HANDLER: OnceCell<usize> = OnceCell::new();
 impl<T: Sized + Copy> TryDeref<T> for *const T {
     unsafe fn try_deref(self) -> Option<T> {
         VEH_HANDLER.get_or_init(|| {
-            NonNull::new(unsafe { AddVectoredExceptionHandler(0, Some(veh_handler)) })
+            NonNull::new(unsafe { AddVectoredExceptionHandler(1, Some(veh_handler)) })
                 .expect("Failed to register vectored exception handler")
                 .as_ptr() as usize
         });
@@ -132,6 +133,21 @@ impl<T: Sized + Copy> TryDeref<T> for *const T {
     }
 }
 
+/// Remove the vectored exception handler used in the [`TryDeref::try_deref`] implementation.
+/// 
+/// # Safety
+/// Calling this nullifies the memory safety guarantees of [`TryDeref::try_deref`] for the remainder
+/// of the program's lifetime. It should only be called before freeing a dynamic library that uses it, for example.
+pub unsafe fn clean_up_veh() -> bool {
+    if let Some(h) = VEH_HANDLER.get().cloned() {
+        RemoveVectoredExceptionHandler(h as *mut c_void);
+        true
+    }
+    else {
+        false
+    }
+}
+
 impl<T: Sized + Copy> TryDeref<T> for *mut T {
     unsafe fn try_deref(self) -> Option<T> {
         self.cast_const().try_deref()
@@ -144,17 +160,17 @@ pub const STEAM_CLIENT : &'static str = "steamclient.dll";
 pub const STEAM_CLIENT : &'static str = "steamclient64.dll";
 
 static STEAMCLIENT_PE: OnceCell<PeView> = OnceCell::new(); 
-pub fn steam_client_pe<'a>() -> Result<&'a PeView<'a>, ()> {
+pub fn steam_client_pe<'a>() -> Option<&'a PeView<'a>> {
     STEAMCLIENT_PE.get_or_try_init(|| -> Result<PeView, ()> {
         let handle = STEAM_CLIENT.get_handle().ok_or(())?;
         Ok(unsafe { PeView::module(handle as *const u8) })
-    })
+    }).ok()
 }
 
 static STEAMCLIENT_CODE_BOUNDS: OnceCell<Range<u64>> = OnceCell::new();
-pub fn client_code_bounds() -> Result<Range<u64>, ()> {
+pub fn client_code_bounds() -> Option<Range<u64>> {
     STEAMCLIENT_CODE_BOUNDS.get_or_try_init(|| -> Result<Range<u64>, ()> {
-        let pe = steam_client_pe()?;
+        let pe = steam_client_pe().ok_or(())?;
 
         let text = pe
             .section_headers()
@@ -165,7 +181,7 @@ pub fn client_code_bounds() -> Result<Range<u64>, ()> {
         let start = pe.rva_to_va(text.virtual_range().start).unwrap() as u64;
         let end = pe.rva_to_va(text.virtual_range().end).unwrap() as u64;
         Ok(start..end)  
-    }).cloned()
+    }).ok().cloned()
 }
 
 pub fn read_ascii_static_cstr<'a, T: Pe<'a>>(pe: &T, ptr: u64) -> Option<&'static str> {

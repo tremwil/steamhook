@@ -7,7 +7,6 @@ pub trait IsImmediate {
 impl IsImmediate for OpKind {
     #[inline]
     fn is_immediate(&self) -> bool {
-        let kind = *self;
         match *self {
             Self::Immediate8 | Self::Immediate16 | Self::Immediate32 | Self::Immediate64
             | Self::Immediate8to16 | Self::Immediate8to32 | Self::Immediate8to64 | Self::Immediate32to64 => true,
