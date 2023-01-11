@@ -85,7 +85,7 @@ pub trait ThiscallArgs: Tuple + 'static {
     unsafe fn thiscall<R>(self, thisptr: *mut(), fun: *const ()) -> R;
 }
 
-pub trait VtableHookCb<A: VtableHookArgs>: Fn<A, Output: 'static> + 'static {
+pub trait VtableHookCb<A: VtableHookArgs>: Fn<A, Output = A::Ret> + 'static {
     fn thiscall_thunk() -> *const ();
     fn thiscall_thunk_ref(&self) -> *const ();
 } 

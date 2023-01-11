@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{Cursor, Result, Write}, ptr::NonNull, sync::{*, atomic::Ordering::*}, ffi::c_void};
+use std::{collections::HashMap, io::{Cursor, Write}, ptr::NonNull, sync::{*, atomic::Ordering::*}, ffi::c_void};
 use once_cell::sync::Lazy;
 use pelite::pe::{PeView, Pe};
 use windows::Win32::System::Memory::{HeapCreate, HeapAlloc, HeapHandle, HEAP_CREATE_ENABLE_EXECUTE, VirtualProtect, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, HEAP_FLAGS};
@@ -205,6 +205,10 @@ impl Drop for HookHandle {
 
 #[cfg(test)]
 mod tests {
+    // We want to test thunk generation for more complex prologues, and 
+    // an easy way to do this is involving non-FFI types like arrays and u128
+    #![allow(improper_ctypes_definitions)]
+
     use super::*;
 
     // Test with different parameter sizes and a return type wider than the register size
@@ -218,7 +222,7 @@ mod tests {
     #[cfg(target_arch = "x86_64")]
     type Fun = extern "fastcall" fn(*mut (), f64, u16, u32, [u8; 32]) -> u128;
     #[cfg(target_arch = "x86_64")]
-    extern "fastcall" fn test_fun(instance: *mut (), w: f64, x: u16, y: u32, z: [u8; 32]) -> u128 {
+    extern "fastcall" fn test_fun(_instance: *mut (), w: f64, x: u16, y: u32, z: [u8; 32]) -> u128 {
         let z_sum : u128 = z.iter().map(|&x| x as u128).sum();
         (x as u128 + y as u128 + z_sum) * w.round() as u128
     }
@@ -248,7 +252,7 @@ mod tests {
 
         assert_eq!(data.fun()(instance, 1.0, 2, 3, data.arr.clone()), 7u128);
         
-        let handle = unsafe { VtableHookMan::instance_mut().install_hook(data.vmt, 0, move |ctx: VtableHookCtx<u128>, w: f64, x: u16, y: u32, z: [u8; 32]| -> u128 {
+        let handle = unsafe { VtableHookMan::instance_mut().install_hook(data.vmt, 0, move |ctx: VtableHookCtx<u128>, w: f64, _: u16, _: u32, _: [u8; 32]| -> u128 {
             assert_eq!(ctx.thisptr(), instance, "thisptr mismatch");
             w.round() as u128 
         }) };
