@@ -184,6 +184,24 @@ pub fn client_code_bounds() -> Option<Range<u64>> {
     }).ok().cloned()
 }
 
+static STEAM_CLIENT_RDATA_BOUNDS: OnceCell<Range<u64>> = OnceCell::new();
+pub fn client_rdata_bounds() -> Option<Range<u64>> {
+    STEAM_CLIENT_RDATA_BOUNDS.get_or_try_init(|| -> Result<Range<u64>, ()> {
+        let pe = steam_client_pe().ok_or(())?;
+
+        let text = pe
+            .section_headers()
+            .iter()
+            .find(|sec| &sec.Name == b".rdata\0\0")
+            .expect("steam client DLL .rdata section not found");      
+
+        let start = pe.rva_to_va(text.virtual_range().start).unwrap() as u64;
+        let end = pe.rva_to_va(text.virtual_range().end).unwrap() as u64;
+        Ok(start..end)  
+    }).ok().cloned()
+}
+
+
 pub fn read_ascii_static_cstr<'a, T: Pe<'a>>(pe: &T, ptr: u64) -> Option<&'static str> {
     let a = pe.va_to_rva(ptr as Va).ok()?;
     let cstr = pe.derva_c_str(a).ok()?;

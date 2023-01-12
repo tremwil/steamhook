@@ -1,14 +1,49 @@
+[package]
+name = "steamhook"
+version = "0.0.1"
+authors = ["tremwil <tremwil@users.noreply.github.com>"]
+edition = "2021"
+license = "MIT"
+
+description = "Hooking internal Steam APIs made easy"
+#documentation = "https://docs.rs/steamhook/" no docs yet
+repository = "https://github.com/tremwil/steamhook"
+readme = "README.md"
+keywords = ["steam", "steamworks", "detour", "hooking", "windows"]
+
 [workspace]
-members = [
-    "crates/steamhook",
-    "crates/test_dll",
-    "crates/test_launcher"
+members = [".", "./test_dll", "./test_launcher"]
+
+[dependencies]
+pelite = { git = "https://github.com/tremwil/pelite", branch = "pe32-aslr-fix" }
+once_cell = "1.16.0"
+iced-x86 = "1.18.0"
+seq-macro = "0.3.1"
+thiserror = "1.0.38"
+bounded-vec-deque = "0.1.1"
+log = "0.4.17"
+itertools = "0.10.5"
+byteorder = "1.4.3"
+
+
+[dependencies.windows]
+version = "0.43.0"
+features = [
+    "Data_Xml_Dom",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemServices",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Kernel"
 ]
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
-panic = 'abort'
 strip = true
 debug = false

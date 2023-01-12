@@ -1,24 +1,19 @@
 [package]
-name = "steamhook"
+name = "test_dll"
 version = "0.0.1"
 authors = ["tremwil <tremwil@users.noreply.github.com>"]
 edition = "2021"
 license = "MIT"
 
-[dependencies]
-pelite = { git = "https://github.com/tremwil/pelite", branch = "pe32-aslr-fix" }
-once_cell = "1.16.0"
-steamworks = "0.9.0"
-iced-x86 = "1.18.0"
-seq-macro = "0.3.1"
-thiserror = "1.0.38"
-bounded-vec-deque = "0.1.1"
-log = "0.4.17"
-itertools = "0.10.5"
-pod = "0.5.0"
-byteorder = "1.4.3"
-faithe = "0.8.0"
+[lib]
+crate-type = ["cdylib"]
 
+[dependencies]
+steamhook = { path = "../" }
+log = "0.4.17"
+simple_logger = "4.0.0"
+named_pipe = "0.4.1"
+itertools = "0.10.5"
 
 [dependencies.windows]
 version = "0.43.0"
@@ -32,5 +27,6 @@ features = [
     "Win32_System_SystemServices",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Diagnostics_Debug",
-    "Win32_System_Kernel"
+    "Win32_System_Kernel",
+    "Win32_System_Console"
 ]
