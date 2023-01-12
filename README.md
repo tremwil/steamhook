@@ -4,7 +4,7 @@ steamhook provides APIs for hooking and calling internal Steam IPC endpoints dir
 
 This project is still very young as as such severely lacks documentation and not all provided APIs may be convenient to use, but is fully functionnal. For usage examples, see the source code of the `test_dll` and `test_launcher` binary crates. 
 
-### Compilation
+### Building
 Requires the nightly toolchain.
 
 ### Roadmap (roughly in order of priority)
