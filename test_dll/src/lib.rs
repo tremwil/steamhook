@@ -1,13 +1,13 @@
 
 use std::error::Error;
-use std::ffi::{CString, c_uchar, CStr};
+use std::ffi::{CString, CStr};
 use std::io::{Write, Read};
 use std::path::PathBuf;
 use itertools::Itertools;
 use windows::core::PCSTR;
 use windows::Win32::Foundation::HINSTANCE;
 use windows::Win32::System::SystemServices::DLL_PROCESS_ATTACH;
-use windows::Win32::System::LibraryLoader::{DisableThreadLibraryCalls, FreeLibraryAndExitThread, GetModuleFileNameA, GetModuleHandleA, GetModuleHandleExA, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT};
+use windows::Win32::System::LibraryLoader::{DisableThreadLibraryCalls, FreeLibraryAndExitThread, GetModuleFileNameA, GetModuleHandleExA, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT};
 use windows::Win32::System::Console::{AllocConsole, GetConsoleWindow};
 use named_pipe::*;
 use std::time::Instant;
@@ -89,14 +89,15 @@ fn steamhook_test() -> Result<(), Box<dyn Error>> {
             "IClientFriends", 
             "GetPersonaName", 
             |ctx: VtableHookCtx<*const i8>| -> Option<*const i8> {
-                println!("GetPersonName() -> {}", CStr::from_ptr(ctx.call_next(())).to_str().ok()?);
+                println!("GetPersonaName hook called! original result: {}", CStr::from_ptr(ctx.call_next(())).to_str().ok()?);
                 Some(b"your_new_name\0" as *const u8 as *const i8)
             }.unwrap_or_next()
         )?;
 
         let socket_read_hook = sh.get("IClientNetworking")
             .ok_or("No IClientNetworking interface!".to_owned())?
-            .install_hook("ReadP2PPacket", |_ctx, pub_dest: *mut u8, cub_dest: u32, msg_size: *mut u32, steam_id: *mut u64, n_channel: i32| -> bool {
+            .install_hook("ReadP2PPacket", |_ctx, pub_dest: *mut u8, cub_dest: u32, msg_size: *mut u32, steam_id: *mut u64, _n_channel: i32| -> bool {
+                println!("ReadP2PPacket hook called!");
                 // Write a null terminated "test_string" in the buffer
                 const PACKET: &[u8; 4] = &0xDEADBEEFu32.to_be_bytes();
                 let mut slice = std::slice::from_raw_parts_mut(pub_dest, cub_dest as usize);
@@ -110,7 +111,18 @@ fn steamhook_test() -> Result<(), Box<dyn Error>> {
         (persona_name_hook, socket_read_hook)
     };
 
-    println!("done\nwaiting for tests to end...");
+    println!("done\ntesting direct endpoint invocation...");
+    
+    // Example: calling internal steam IPC endpoint outside of hook
+    // This does not always work! some functions require a current AppID to be called
+    let persona_name : *const c_char = unsafe { SteamHook::instance()
+        .get("IClientFriends")
+        .ok_or("No IClientFriends interface!".to_owned())?
+        .call("GetPersonaName", ())?
+    };
+    println!("GetPersonaName() -> {}", unsafe { CStr::from_ptr(persona_name) }.to_str()?);
+
+    println!("done, testing IPC hooks...");
 
     // Send signal to server to notify that steamhook is ready
     ipc_client.write_all(&[0])?;
