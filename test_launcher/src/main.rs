@@ -45,9 +45,9 @@ fn main() {
 
 #[cfg(target_arch = "x86")]
 fn main() -> Result<(), Box<dyn Error>> {
-    use std::io::{Read, Write, BufRead};
+    use std::io::Read;
     use named_pipe::*;
-    use steamworks::{Networking, Friends, Client};
+    use steamworks::Client;
     use sysinfo::{SystemExt, ProcessExt, PidExt};
 
     // Init Steam
