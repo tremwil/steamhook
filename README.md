@@ -4,6 +4,9 @@ steamhook provides APIs for hooking and calling internal Steam IPC endpoints dir
 
 This project is still very young as as such severely lacks documentation and not all provided APIs may be convenient to use, but is fully functionnal. For usage examples, see the source code of the `test_dll` and `test_launcher` binary crates. 
 
+### Compilation
+Requires the nightly toolchain.
+
 ### Roadmap (roughly in order of priority)
 - Support for hooking internal APIs from a client process (game)
 - Cleaning up the API and adding proper documentation
@@ -12,5 +15,5 @@ This project is still very young as as such severely lacks documentation and not
 ### Not on the roadmap
 - Native linux support (wine/proton should be supported) 
 
-### Finding call n#mes and reversing the arguments
-Compiling with `cargo build --target i686-pc-windows --all` and unning the `test_launcher` executable will generate an `interface_dump` folder in the same directory, with CSV tables listing all endpoint vtable offsets, names, call IDs and RVAs in the steamclient binary. You can then use the RVAs to view the endpoints in a reverse engineering suite like Ghidra and inspect argument types. Consulting the public Steamworks SDK refrence may also be useful; it appears that most endpoints sharing the name of their public SDK binding take the same parameters. 
+### Finding call names and reversing the arguments
+Compiling with `cargo build --target i686-pc-windows --all` and running the `test_launcher` executable will generate an `interface_dump` folder in the same directory, with CSV tables listing all endpoint vtable offsets, names, call IDs and RVAs in the steamclient binary. You can then use the RVAs to view the endpoints in a reverse engineering suite like Ghidra and inspect argument types. Consulting the public Steamworks SDK refrence may also be useful; it appears that most endpoints sharing the name of their public SDK binding take the same parameters. 
