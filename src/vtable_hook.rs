@@ -196,6 +196,8 @@ impl RwSingleton for VtableHookMan {
 pub struct HookHandle {
     hook_data: *mut VtableHook
 }
+unsafe impl Send for HookHandle {}
+unsafe impl Sync for HookHandle {}
 
 impl Drop for HookHandle {
     fn drop(&mut self) {
