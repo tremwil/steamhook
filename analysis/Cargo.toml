@@ -1,0 +1,9 @@
+[package]
+name = "steamhook-analysis"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pelite = { git = "https://github.com/tremwil/pelite", branch = "fix-pattern-in-macro-rules" }
+iced-x86 = "1.21"
+clap = { version = "4.5.27", features = ["derive"] }
